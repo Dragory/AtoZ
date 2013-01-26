@@ -1,0 +1,9 @@
+/vendor
+composer.phar
+composer.lock
+.DS_Store
+
+# Security related configuration files
+/app/config/app.php
+/app/config/database.php
+/app/config/steamapi.php

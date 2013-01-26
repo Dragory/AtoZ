@@ -1,13 +1,11 @@
 <?php
 
-class LoginController extends BaseController
+class LoginController extends BaseFrontController
 {
     protected $openID = null;
 
     public function __construct()
     {
-        parent::__construct();
-
         $this->openID = new \Mivir\OpenID(null, URL::route('login_after'));
     }
 
@@ -35,27 +33,38 @@ class LoginController extends BaseController
             return Redirect::route('index');
         }
 
+        // Parse the 64-bit SteamID from the returned identity
         $steam64 = explode('/', $identity);
         $steam64 = array_pop($steam64);
 
+        // Required models for this function
+        $usersModel = new Users;
+        $middleAuthenticationModel = new \Mivir\MiddleAuthentication;
+
         // Check if we already have the logged in user on record
-        $users = new Users;
-        $user = $users->getUserBySteam64($steam64);
+        $user = $usersModel->getUserBySteam64($steam64);
 
         // If we're not yet in the database, register.
-        if (!$user) $users->register($steam64);
-
-        // Log in
-        $status = $users->login($steam64);
-
-        // If everything was successful, redirect to the dashboard
-        if ($status)
+        if (!$user)
         {
-            return Redirect::to_route('index');
+            try {
+                $middleAuthenticationModel->register($steam64);
+            } catch (\Mivir\RegistrationFailedException $e) {
+                Notification::error($e->getMessage());
+                return Redirect::route('index');
+            }
         }
 
-        // Otherwise, redirect to the login page
-        // and tell the user something went wrong.
-        return Redirect::to_route('login');
+        // Log in
+        try {
+            $status = $users->login($steam64);
+        } catch (\Mivir\InvalidLoginException $e) {
+            Notification::error($e->getMessage());
+            return Redirect::route('index');
+        }
+
+        // If everything was successful, redirect to the dashboard
+        Notification::success(__('success.login_successful'));
+        return Redirect::to_route('index');
     }
 }

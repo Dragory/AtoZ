@@ -14,7 +14,7 @@ class OpenID
         if (!$url) $url = $this->defaultUrl;
 
         // Create the object and use our current URL as the "trusted root"
-        $this->openid = new \LightOpenID(URL::base());
+        $this->openid = new \LightOpenID(\URL::to('/'));
         if ($returnUrl) $this->openid->returnUrl = $returnUrl;
 
         // Use the URL as the identity
